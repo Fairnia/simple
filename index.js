@@ -1,10 +1,11 @@
 var express = require('express');
 var socket = require('socket.io');
+var PORT = process.env.PORT || 4000;
 
 //Express server set up
 var app = express ();
 //cli: nodemon index.js
-var server = app.listen(4000, function(){
+var server = app.listen(PORT, function(){
   console.log('listening on *:4000');
 });
 
