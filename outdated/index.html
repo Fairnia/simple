@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Simple Sockets</title>
+  </head>
+  <body>
+    <div class="" id="mario-chat">
+      <div class="" id="chat-window">
+        <div class="" id="output"></div>
+      </div>
+      <input type="text" id="handle" placeholder="Handle">
+      <input type="text" id="message" placeholder="Message">
+      <button type="button" id="send" name="button"></button>
+
+      <video id="received_video" autoplay playsinline></video>
+      <video id="local_video" autoplay playsinline muted style="border:4px solid red;"></video>
+      <button id="hangup-button" onclick="hangUpCall();" disabled>
+        Hang Up
+      </button>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+    <script type="text/javascript">
+      //make connection
+      const socket = io.connect("http://localhost:4000/");
+      let prevMatched = [];
+      let count = 0;
+
+      // Query DOM
+      const message = document.getElementById('message'),
+        handle = document.getElementById('handle'),
+        btn = document.getElementById('send'),
+        output = document.getElementById('output');
+
+        socket.on('connected', function(id){
+          socket.emit('waiting', prevMatched);
+          console.log('Socket connected ', id);
+        });
+        socket.on('go-wait', function(){
+          socket.emit('waiting', prevMatched);
+          console.log('My partner hung up on me');
+        });
+
+
+        // Listen if user has becomes answerer - always comes to user2
+        socket.on('answered', function(msg){
+          console.log('call has been answered i am user1', count++, "  ---   ", msg.user1);
+          prevMatched.push(msg.user2);
+        });
+
+        socket.on('userid', function(userid){
+          console.log('my user id is!!', userid );
+        });
+
+        // Listen if user has an offer and provides an answer
+        socket.on('initiate-answer', function(){
+
+        });
+
+        // //get user video
+        // navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+        //   .then(function(stream) {
+        //     var video = document.querySelector('video');
+        //     // Older browsers may not have srcObject
+        //     if ("srcObject" in video) {
+        //       video.srcObject = stream;
+        //     } else {
+        //       // Avoid using this in new browsers, as it is going away.
+        //       video.src = window.URL.createObjectURL(stream);
+        //     }
+        //     video.onloadedmetadata = function(e) {
+        //       video.play();
+        //     };
+        //   })
+        //   .catch(function(err) {
+        //     console.log(err.name + ": " + err.message);
+        //   });
+
+        var mediaConstraints = {
+            audio: true,
+            video: true
+          };
+        var offerMsg = {};
+        var targetUsername = '';
+// Listen if user has become initiator - always comes to user2
+        socket.on('initiate-offer', function(msg){
+          console.log('this is user 2 ', msg.user2, 'the offer has been initiated')
+          function invite(msg) {
+              console.log('invite(evt) has been initiated')
+
+              // CONNECT THE SOCKET.ID OF PARTNER TO "TARGETUSERNAME"
+              targetUsername = msg.user1;
+              offerMsg = {
+                user1:msg.user1,
+                user2: msg.user2
+              };
+              createPeerConnection();
+
+              navigator.mediaDevices.getUserMedia(mediaConstraints)
+              .then(function(localStream) {
+                document.getElementById("local_video").srcObject = localStream;
+                localStream.getTracks().forEach(track => myPeerConnection.addTrack(track, localStream));
+              })
+              .catch(handleGetUserMediaError);
+          }
+          invite(msg);
+        });
+
+        function handleGetUserMediaError(e) {
+          switch(e.name) {
+            case "NotFoundError":
+              alert("Unable to open your call because no camera and/or microphone" +
+                    "were found.");
+              break;
+            case "SecurityError":
+            case "PermissionDeniedError":
+              // Do nothing; this is the same as the user canceling the call.
+              break;
+            default:
+              alert("Error opening your camera and/or microphone: " + e.message);
+              break;
+          }
+          closeVideoCall();
+        }
+
+        function createPeerConnection() {
+          myPeerConnection = new RTCPeerConnection({
+              iceServers: [
+                {
+                  urls: "stun:stun.l.google.com:19302"
+                }
+              ]
+          });
+
+          myPeerConnection.onicecandidate = handleICECandidateEvent;
+          myPeerConnection.ontrack = handleTrackEvent;
+          myPeerConnection.onnegotiationneeded = handleNegotiationNeededEvent;
+          myPeerConnection.onremovetrack = handleRemoveTrackEvent;
+        }
+
+        //automatically triggered when a createPeerConnection is called
+          function handleNegotiationNeededEvent(){
+            myPeerConnection.createOffer().then(function(offer) {
+              return myPeerConnection.setLocalDescription(offer);
+            })
+            .then(function() {
+
+                offerMsg={
+                  user1: offerMsg.user1,
+                  user2: offerMsg.user2,
+                  sdp: myPeerConnection.localDescription
+                }
+                console.log('offer has been initiated to me, user2 - wahoo!', offerMsg );
+
+                socket.emit('video-offer', offerMsg);
+                prevMatched.push(offerMsg.user1);
+
+            })
+            .catch(reportError);
+          }
+
+          function reportError(errMessage) {
+            console.log(`Error ${errMessage.name}: ${errMessage.message}`);
+          }
+
+
+        //user1 always receives 'received-offer'
+        var answerMsg = {}
+        socket.on('received-offer', function(msg){
+          console.log('I am  ', socket.id, 'my partner is', msg.user2, msg.sdp)
+          function handleVideoOfferMsg(msg){
+            var localStream = null;
+
+            targetUsername = msg.user2;
+            createPeerConnection();
+
+            var desc = new RTCSessionDescription(msg.sdp);
+
+            myPeerConnection.setRemoteDescription(desc).then(function () {
+              console.log('set remote in my peer')
+              return navigator.mediaDevices.getUserMedia(mediaConstraints);
+            })
+            .then(function(stream) {
+              localStream = stream;
+              document.getElementById("local_video").srcObject = localStream;
+
+              localStream.getTracks().forEach(track => myPeerConnection.addTrack(track, localStream));
+            })
+            .then(function() {
+              return myPeerConnection.createAnswer();
+            })
+            .then(function(answer) {
+              return myPeerConnection.setLocalDescription(answer);
+            })
+            .then(function() {
+              answerMsg = {
+                user1: msg.user1,
+                user2: msg.user2,
+                sdp: myPeerConnection.localDescription
+              };
+              //send answer back to user2
+              socket.emit('video-offer', answerMsg);
+              prevMatched.push(answerMsg.user2);
+            })
+            .catch(handleGetUserMediaError);
+          }
+          handleVideoOfferMsg(msg);
+        });
+
+
+        function handleICECandidateEvent(event) {
+          if (event.candidate) {
+            // console.log("*** Outgoing ICE candidate: " + event.candidate.candidate);
+            var iceMsg = {
+              target: targetUsername,
+              candidate: event.candidate
+            }
+            socket.emit('new-ice-candidate', iceMsg);
+
+          }
+        }
+
+        socket.on('received-ice-candidate', function(msg){
+          function handleNewICECandidateMsg(msg) {
+            var candidate = new RTCIceCandidate(msg.candidate);
+
+            myPeerConnection.addIceCandidate(candidate)
+              .catch(reportError);
+          }
+          handleNewICECandidateMsg(msg);
+        });
+
+        function handleTrackEvent(event) {
+          document.getElementById("received_video").srcObject = event.streams[0];
+          document.getElementById("hangup-button").disabled = false;
+        }
+
+        function handleRemoveTrackEvent(event) {
+          var stream = document.getElementById("received_video").srcObject;
+          var trackList = stream.getTracks();
+
+          if (trackList.length == 0) {
+            closeVideoCall();
+          }
+        }
+
+        // CREATE SOCKETS FOR ENDING CALL - THIS WILL BE TIED TO THE RANDOM TIMER
+        // Will have to decide which user instigates the hangup
+        function hangUpCall() {
+          closeVideoCall();
+
+          socket.emit('hang-up', );
+
+
+          sendToServer({
+            name: myUsername,
+            target: targetUsername,
+            type: "hang-up"
+          });
+
+        }
+
+        function closeVideoCall() {
+          var remoteVideo = document.getElementById("received_video");
+          var localVideo = document.getElementById("local_video");
+
+          if (myPeerConnection) {
+            myPeerConnection.ontrack = null;
+            myPeerConnection.onremovetrack = null;
+            myPeerConnection.onremovestream = null;
+            myPeerConnection.onicecandidate = null;
+            myPeerConnection.oniceconnectionstatechange = null;
+            myPeerConnection.onsignalingstatechange = null;
+            myPeerConnection.onicegatheringstatechange = null;
+            myPeerConnection.onnegotiationneeded = null;
+
+            if (remoteVideo.srcObject) {
+              remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+            }
+
+            if (localVideo.srcObject) {
+              localVideo.srcObject.getTracks().forEach(track => track.stop());
+            }
+
+            myPeerConnection.close();
+            myPeerConnection = null;
+          }
+
+          remoteVideo.removeAttribute("src");
+          remoteVideo.removeAttribute("srcObject");
+          localVideo.removeAttribute("src");
+          remoteVideo.removeAttribute("srcObject");
+
+          document.getElementById("hangup-button").disabled = true;
+          targetUsername = null;
+          offerMsg = {};
+          answerMsg = {};
+        }
+
+
+    </script>
+  </body>
+</html>
