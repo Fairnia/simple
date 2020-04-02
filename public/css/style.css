@@ -51,7 +51,7 @@ header{
 .zengreet-action{
   margin: 0 auto;
   background-color: white;
-  max-width: 600px;
+  max-width: 700px;
   width: 100%;
 }
 
@@ -135,21 +135,6 @@ header{
   right: 0;
 }
 
-@media only screen and (min-device-width: 600px) {
-  .videos-prompts{
-    width: 600px;
-  }
-  #local_video{
-    width:20%;
-  }
-  .homepage-text{
-    font-size: 18px;
-  }
-  a.connect{
-    font-size: 22px;
-  }
-
-}
 #greetings{
   text-align: center;
   font-size: 28px;
@@ -243,7 +228,7 @@ a.connect{
 }
 
 .homepage-definitions{
-  max-width: 600px;
+  max-width: 700px;
 }
 
 .definition-row{
@@ -269,4 +254,20 @@ footer {
 footer p{
   margin: 0;
   padding: 2px;
+}
+
+@media only screen and (min-device-width: 700px) {
+  .videos-prompts{
+    width: 700px;
+  }
+  #local_video{
+    width:20%;
+  }
+  .homepage-text{
+    font-size: 18px;
+  }
+  a.connect{
+    font-size: 22px;
+  }
+
 }
