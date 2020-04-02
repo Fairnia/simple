@@ -142,6 +142,10 @@ header{
   #local_video{
     width:20%;
   }
+  .homepage-text{
+    font-size: 18px;
+  }
+
 }
 #greetings{
   text-align: center;
@@ -228,7 +232,7 @@ a.connect{
 
 .homepage-text{
   text-align: center;
-  font-size: 18px;
+  font-size: 24px;
   padding: 5px;
   max-width: 700px;
   margin: 0 auto;
