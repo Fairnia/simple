@@ -135,7 +135,7 @@ header{
   right: 0;
 }
 
-@media only screen and (min-device-widthwidth: 600px) {
+@media only screen and (min-device-width: 600px) {
   .videos-prompts{
     width: 600px;
   }
