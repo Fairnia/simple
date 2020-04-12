@@ -50,82 +50,56 @@
     let errorCount = 0;
     let showingGreetings = false;
 
-// Work through the prompts
-function showGreetings(){
-  if(showingGreetings === false){
-    showingGreetings = true;
-    var prompts = [ {
-      "greeting":"Say...Hello to your partner",
-    },
-    // {
-    //   "greeting":"May you be happy",
-    // },
-    // {
-    //   "greeting":"May you be healthy",
-    // },
-    // {
-    //   "greeting":"May you stay safe",
-    // },
-    {
-      "greeting":"Share a moment together",
-      "delayedGreeting": "don't be too shy to smile :)"
-    },
-    {
-      "greeting":"Thank your partner and say goodbye",
-      "delay": 4000,
-      "fadeOut": 2500
-    },
-  ];
-  var i = 0;
-  function animate() {
-    if(i === prompts.length){
-       location.reload();
-    }else{
-      var delayDur =  prompts[i].delay ? prompts[i].delay : 7000;
-      var fadeOutDur =  prompts[i].fadeOut ? prompts[i].fadeOut : 1000;
-      console.log('delayDur ', delayDur,  prompts[i].delay, prompts[i].greeting , i )
-      $("#greetings").text(prompts[i].greeting).fadeIn(1000, function(){
-        if(prompts[i].delayedGreeting){
-          $("#delayedGreeting").delay(1000).hide().text(prompts[i].delayedGreeting).fadeIn(1000).delay(2000).fadeOut(1000,function(){
-            this.textContent = '';
+    // Work through the prompts
+    function showGreetings(){
+      if(showingGreetings === false){
+        showingGreetings = true;
+        var prompts = [ {
+          "greeting":"Say...Hello to your partner",
+        },
+        // {
+        //   "greeting":"May you be happy",
+        // },
+        // {
+        //   "greeting":"May you be healthy",
+        // },
+        // {
+        //   "greeting":"May you stay safe",
+        // },
+        {
+          "greeting":"Share a moment together",
+          // "delayedGreeting": "don't be too shy to smile :)"
+        },
+        {
+          "greeting":"Thank your partner and say goodbye",
+          "delay": 1000,
+          "fadeOut": 2500
+        },
+      ];
+      var i = 0;
+      function animate() {
+        if(i === prompts.length){
+           // location.reload();
+           getNewPeerId();
+        }else{
+          var delayDur =  prompts[i].delay ? prompts[i].delay : 2000;
+          var fadeOutDur =  prompts[i].fadeOut ? prompts[i].fadeOut : 1000;
+          console.log('delayDur ', delayDur,  prompts[i].delay, prompts[i].greeting , i )
+          $("#greetings").text(prompts[i].greeting).fadeIn(1000, function(){
+            if(prompts[i].delayedGreeting){
+              $("#delayedGreeting").delay(1000).hide().text(prompts[i].delayedGreeting).fadeIn(1000).delay(2000).fadeOut(1000,function(){
+                this.textContent = '';
+              });
+            }
+          }).delay(delayDur).fadeOut(fadeOutDur, function(){
+            i = (i + 1);
+            animate();
           });
         }
-      }).delay(delayDur).fadeOut(fadeOutDur, function(){
-        i = (i + 1);
-        animate();
-      });
+       }
+      animate();
+      }
     }
-   }
-  animate();
-    // (function animate() {
-    //   if(i === prompts.length){
-    //     location.reload();
-    //   }else{
-    //     delayDur =  prompts[j].delay ? prompts[j].delay : 3000;
-    //     j = j + 1;
-    //     console.log('delayDur ', delayDur,  prompts[j].delay, prompts[i].greeting , i )
-    //     $("#greetings").delay(delayDur).fadeOut(1000, function() {
-    //         this.textContent = prompts[i].greeting;
-    //         console.log('prompts.length and i', prompts.length, i)
-    //         if(prompts[i].delayedGreeting){
-    //           $("#greetings").delay(1000).fadeOut(1000, function() {
-    //             $("#delayedGreeting").text(prompts[i].delayedGreeting);
-    //             i = (i + 1);
-    //           }).fadeIn(1000, animate);
-    //           //
-    //           // setTimeout(function(){
-    //           //   console.log('delayedGreeting ',  prompts[i].delayedGreeting)
-    //           // }, 1500);
-    //         }else{
-    //           $("#delayedGreeting").text("");
-    //           i = (i + 1);
-    //         }
-    //     }).fadeIn(1000, animate);
-    //   }
-    // })();
-
-  }
-}
 
 
 // show and hide loading and video containers
@@ -179,9 +153,6 @@ function showGreetings(){
       }, 20000);
 
       const socket = io.connect("http://localhost:4000");
-      var peer;
-      var peer = new Peer();
-      var peerId = '';
 
       socket.on('getNewPeerId', function(){
         console.log('getNewPeerId socket');
@@ -189,9 +160,13 @@ function showGreetings(){
       });
 
       function getNewPeerId(){
-        location.reload();
-      }
-
+        // location.reload();
+        console.log('getNewPeerId was called')
+        if(peer){
+          peer.destroy();
+        }
+        var peer = new Peer();
+        var peerId = '';
       peer.on('open', function(id) {
         console.log('My peer ID is: ' + peer.id);
         peerId = id;
@@ -273,6 +248,7 @@ function showGreetings(){
             notStreaming = false;
           });
           called.on('close', function(){
+
             // getNewPeerId();
           })
         }, function(err) {
@@ -281,6 +257,8 @@ function showGreetings(){
       });
 
 
+    }
+    getNewPeerId();
       socket.on('backinwaiting', function(){
         console.log('I am back in waiting ')
       });
