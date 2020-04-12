@@ -33,7 +33,7 @@
             <video id="local_video" autoplay playsinline muted></video>
           </div>
           <div id="greetings"></div>
-          <div id="delayedGreeting" style="border: 1px solid red;"></div>
+          <div id="delayedGreeting"></div>
         </div>
       </div>
 
@@ -55,7 +55,7 @@ function showGreetings(){
   if(showingGreetings === false){
     showingGreetings = true;
     var prompts = [ {
-      "greeting":"Say...Haello to your partner",
+      "greeting":"Say...Hello to your partner",
     },
     // {
     //   "greeting":"May you be happy",
@@ -72,26 +72,31 @@ function showGreetings(){
     },
     {
       "greeting":"Thank your partner and say goodbye",
-      "delay": 1000
+      "delay": 4000,
+      "fadeOut": 2500
     },
-    {
-      "greeting":"",
-    }
   ];
   var i = 0;
- (function animate() {
-   if(i === prompts.length){
-     location.reload();
-   }else{
-     delayDur =  prompts[i].delay ? prompts[i].delay : 3000;
-     console.log('delayDur ', delayDur,  prompts[i].delay, prompts[i].greeting , i )
-     $("#greetings").delay(delayDur).fadeOut(1000, function() {
-       this.textContent = prompts[i].greeting;
-       i = (i + 1);
-       console.log('prompts.length and i', prompts.length, i)
-     }).fadeIn(1000, animate);
+  function animate() {
+    if(i === prompts.length){
+       location.reload();
+    }else{
+      var delayDur =  prompts[i].delay ? prompts[i].delay : 7000;
+      var fadeOutDur =  prompts[i].fadeOut ? prompts[i].fadeOut : 1000;
+      console.log('delayDur ', delayDur,  prompts[i].delay, prompts[i].greeting , i )
+      $("#greetings").text(prompts[i].greeting).fadeIn(1000, function(){
+        if(prompts[i].delayedGreeting){
+          $("#delayedGreeting").delay(1000).hide().text(prompts[i].delayedGreeting).fadeIn(1000).delay(2000).fadeOut(1000,function(){
+            this.textContent = '';
+          });
+        }
+      }).delay(delayDur).fadeOut(fadeOutDur, function(){
+        i = (i + 1);
+        animate();
+      });
+    }
    }
- })();
+  animate();
     // (function animate() {
     //   if(i === prompts.length){
     //     location.reload();
