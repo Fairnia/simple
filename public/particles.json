@@ -80,7 +80,7 @@
       },
       "resize": true,
       "density_area": 400,
-      "density_auto": true,
+      "density_auto": true
     },
     "modes": {
       "grab": {

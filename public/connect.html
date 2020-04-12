@@ -33,6 +33,7 @@
             <video id="local_video" autoplay playsinline muted></video>
           </div>
           <div id="greetings"></div>
+          <div id="delayedGreeting" style="border: 1px solid red;"></div>
         </div>
       </div>
 
@@ -53,20 +54,71 @@
 function showGreetings(){
   if(showingGreetings === false){
     showingGreetings = true;
-    var greetings = [ "Say... Hello to your partner", "May you be happy", "May you be healthy", "May you stay safe", "Share a moment together, don't be too shy to smile :)", "Thank you, goodbye"];
-    var i = 0;
-    $("#greetings").text(greetings[0]);
+    var prompts = [ {
+      "greeting":"Say...Haello to your partner",
+    },
+    // {
+    //   "greeting":"May you be happy",
+    // },
+    // {
+    //   "greeting":"May you be healthy",
+    // },
+    // {
+    //   "greeting":"May you stay safe",
+    // },
+    {
+      "greeting":"Share a moment together",
+      "delayedGreeting": "don't be too shy to smile :)"
+    },
+    {
+      "greeting":"Thank your partner and say goodbye",
+      "delay": 1000
+    },
+    {
+      "greeting":"",
+    }
+  ];
+  var i = 0;
+ (function animate() {
+   if(i === prompts.length){
+     location.reload();
+   }else{
+     delayDur =  prompts[i].delay ? prompts[i].delay : 3000;
+     console.log('delayDur ', delayDur,  prompts[i].delay, prompts[i].greeting , i )
+     $("#greetings").delay(delayDur).fadeOut(1000, function() {
+       this.textContent = prompts[i].greeting;
+       i = (i + 1);
+       console.log('prompts.length and i', prompts.length, i)
+     }).fadeIn(1000, animate);
+   }
+ })();
+    // (function animate() {
+    //   if(i === prompts.length){
+    //     location.reload();
+    //   }else{
+    //     delayDur =  prompts[j].delay ? prompts[j].delay : 3000;
+    //     j = j + 1;
+    //     console.log('delayDur ', delayDur,  prompts[j].delay, prompts[i].greeting , i )
+    //     $("#greetings").delay(delayDur).fadeOut(1000, function() {
+    //         this.textContent = prompts[i].greeting;
+    //         console.log('prompts.length and i', prompts.length, i)
+    //         if(prompts[i].delayedGreeting){
+    //           $("#greetings").delay(1000).fadeOut(1000, function() {
+    //             $("#delayedGreeting").text(prompts[i].delayedGreeting);
+    //             i = (i + 1);
+    //           }).fadeIn(1000, animate);
+    //           //
+    //           // setTimeout(function(){
+    //           //   console.log('delayedGreeting ',  prompts[i].delayedGreeting)
+    //           // }, 1500);
+    //         }else{
+    //           $("#delayedGreeting").text("");
+    //           i = (i + 1);
+    //         }
+    //     }).fadeIn(1000, animate);
+    //   }
+    // })();
 
-    (function animate() {
-      if(i === greetings.length){
-        location.reload();
-      }else{
-        $("#greetings").delay(7000).fadeOut(1000, function() {
-          i = (i + 1);
-          this.textContent = greetings[i];
-        }).fadeIn(1000, animate);
-      }
-    })();
   }
 }
 
@@ -121,7 +173,7 @@ function showGreetings(){
         }
       }, 20000);
 
-      const socket = io.connect("https://zengreet.herokuapp.com/");
+      const socket = io.connect("http://localhost:4000");
       var peer;
       var peer = new Peer();
       var peerId = '';
