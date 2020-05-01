@@ -33,7 +33,7 @@ io.on('connection',function(socket)
 
     if(waitingList.length > 1)
     {
-      const user1 = waitingList.pop();
+      const user1 = waitingList.shift();
       const user2 = waitingList.pop();
 
       if (!io.sockets.connected[user1]) {

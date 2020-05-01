@@ -152,7 +152,7 @@
         }
       }, 20000);
 
-      const socket = io.connect("http://localhost:4000");
+      const socket = io.connect("/");
 
       socket.on('getNewPeerId', function(){
         console.log('getNewPeerId socket');
@@ -163,25 +163,22 @@
         // location.reload();
         console.log('getNewPeerId was called')
         if(peer){
+          call.close();
           peer.destroy();
         }
-        var peer = new Peer();
+        var peer = null;
+        peer = new Peer();
         var peerId = '';
       peer.on('open', function(id) {
-        console.log('My peer ID is: ' + peer.id);
+        console.log('My peer ID is: ' + id);
         peerId = id;
         goWait();
       });
 
-      function goWait(){
-        console.log('go wait was called')
-        socket.emit('waiting');
-      }
-
       socket.on('match', function(msg){
         console.log('I have been matched for a connection just waiting for it to work', msg );
       });
-//always comes to user2 - send connection to user1
+      //always comes to user2 - send connection to user1
       socket.on('connect-to-partner', function(msg){
         var connectMsg = {
           user1: msg.user1,
@@ -190,7 +187,7 @@
         }
         console.log('I am user2, user1 wants my info so they can make a call', connectMsg)
         //need to get user2 id to user 1
-          socket.emit('user2-peerId', connectMsg)
+        socket.emit('user2-peerId', connectMsg)
       });
 
       var mediaConstraints = {
@@ -204,8 +201,7 @@
 
       //this always happens to user1, user1 calls user2
       socket.on('make-connection', function(msg){
-        localStorage.clear();
-        call='';
+        call= null;
         console.log('I am user1 I made a call to user2 and want them to answer')
         navigator.mediaDevices.getUserMedia(mediaConstraints)
         .then(function(localStream) {
@@ -222,7 +218,7 @@
             });
           });
         })
-          .catch(handleGetUserMediaError);
+        .catch(handleGetUserMediaError);
       });
 
       peer.on('connection', function(conn) {
@@ -231,7 +227,7 @@
         });
       });
 
-//user2 always gets the on call
+      //user2 always gets the on call
       peer.on('call', function(called) {
         call = '';
         call = called;
@@ -257,6 +253,12 @@
       });
 
 
+    }
+
+
+    function goWait(){
+      console.log('go wait was called')
+      socket.emit('waiting');
     }
     getNewPeerId();
       socket.on('backinwaiting', function(){
