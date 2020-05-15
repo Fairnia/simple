@@ -19,18 +19,10 @@
           </div>
           <a href="/thankyou.html" class="stop">Stop</a>
         </header>
-        <div id="loading" class="reveal">
-          <div class="loading-container">
-            <p>Connecting you to a new partner...</p>
-            <div class="loading-img">
-              <img src="../assets/loading2.gif" alt="Loading gif for finding a new partner">
-            </div>
-          </div>
-        </div>
         <div class="videos-prompts hide" id="videos">
           <div class="video-container">
-            <video id="received_video" autoplay playsinline></video>
-            <video id="local_video" autoplay playsinline muted></video>
+            <video style="border:1px solid green;" id="received_video" autoplay playsinline></video>
+            <video style="border:1px solid red;" id="local_video" autoplay playsinline muted></video>
           </div>
           <div id="greetings"></div>
           <div id="delayedGreeting"></div>
@@ -43,9 +35,8 @@
     <script src="../js/peer.min.js"></script>
     <script type="text/javascript">
 
-    let localMediaStream;
-    let peerMediaStream;
-    let call;
+    let users;
+    let myID;
     let notStreaming = true;
     let errorCount = 0;
     let showingGreetings = false;
@@ -136,61 +127,45 @@
           // Do nothing; this is the same as the user canceling the call.
           break;
           default:
-          if(errorCount > 7){
-            getNewPeerId();
-          }
           alert("Error opening your camera and/or microphone: " + e.message);
           break;
         }
-        // getNewPeerId();
       }
+
 
       setTimeout(function(){
         if(notStreaming === true){
           console.log('not streaming from if statement')
-          getNewPeerId();
         }
       }, 20000);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
       const socket = io.connect("/");
 
-      socket.on('getNewPeerId', function(){
-        console.log('getNewPeerId socket');
-        getNewPeerId()
+      socket.on('connect', () => {
+        console.log(socket.id, "yes you're connected");
+        myID = socket.id;
+        socket.emit('waiting');
       });
 
-      function getNewPeerId(){
-        // location.reload();
-        console.log('getNewPeerId was called')
-        if(peer){
-          call.close();
-          peer.destroy();
-        }
-        var peer = null;
-        peer = new Peer();
-        var peerId = '';
-      peer.on('open', function(id) {
-        console.log('My peer ID is: ' + id);
-        peerId = id;
-        goWait();
-      });
 
       socket.on('match', function(msg){
         console.log('I have been matched for a connection just waiting for it to work', msg );
       });
-      //always comes to user2 - send connection to user1
-      socket.on('connect-to-partner', function(msg){
-        var connectMsg = {
-          user1: msg.user1,
-          user2: msg.user2,
-          user2PeerId: peerId
-        }
-        console.log('I am user2, user1 wants my info so they can make a call', connectMsg)
-        //need to get user2 id to user 1
-        socket.emit('user2-peerId', connectMsg)
-      });
 
-      var mediaConstraints = {
+      let mediaConstraints = {
         audio: true,
         video: {
           aspectRatio: {
@@ -199,68 +174,186 @@
         }
       };
 
-      //this always happens to user1, user1 calls user2
-      socket.on('make-connection', function(msg){
-        call= null;
-        console.log('I am user1 I made a call to user2 and want them to answer')
+      //user2 always initiates the peerConnection
+      socket.on('start-pc-user2', function(msg){
+        console.log('start-pc-user2')
+        users = msg;
+
+        createPeerConnection();
+
         navigator.mediaDevices.getUserMedia(mediaConstraints)
         .then(function(localStream) {
-
           document.getElementById("local_video").srcObject = localStream;
-          localMediaStream = localStream;
-          call = peer.call(msg.user2PeerId, localStream);
-          call.on('stream', function(remoteStream) {
-            document.getElementById("received_video").srcObject = remoteStream;
-            hideElement('loading');
-            notStreaming = false;
-            call.on('close', function(){
-              console.log('the call has ended')
-            });
-          });
+          localStream.getTracks().forEach(track => myPeerConnection.addTrack(track, localStream));
         })
         .catch(handleGetUserMediaError);
       });
 
-      peer.on('connection', function(conn) {
-        conn.on('open', function() {
-          console.log( 'There is a connection! ', socket.id)
+
+
+      async function createPeerConnection() {
+
+        myPeerConnection = new RTCPeerConnection({
+          iceServers: [     // Information about ICE servers - Use your own!
+            {
+              urls: "stun:stun.l.google.com:19302"
+            }
+          ]
         });
+
+        // Set up event handlers for the ICE negotiation process.
+
+        myPeerConnection.onicecandidate = handleICECandidateEvent;
+        // myPeerConnection.oniceconnectionstatechange = handleICEConnectionStateChangeEvent;
+        // myPeerConnection.onicegatheringstatechange = handleICEGatheringStateChangeEvent;
+        // myPeerConnection.onsignalingstatechange = handleSignalingStateChangeEvent;
+        myPeerConnection.onnegotiationneeded = handleNegotiationNeededEvent;
+        myPeerConnection.ontrack = handleTrackEvent;
+      }
+
+      function handleNegotiationNeededEvent() {
+        myPeerConnection.createOffer().then(function(offer) {
+          return myPeerConnection.setLocalDescription(offer);
+        })
+        .then(function() {
+          users.user1SDP = myPeerConnection.localDescription;
+          console.log('users from handleNegotiationNeededEvent ', users);
+          socket.emit('send-offer-user1', users);
+        })
+        .catch(reportError);
+      }
+
+      socket.on('video-offer-user1', function(msg){
+        console.log('video-offer-user1 ', msg.user1)
+        handleVideoOfferMsg(msg);
       });
 
-      //user2 always gets the on call
-      peer.on('call', function(called) {
-        call = '';
-        call = called;
-        console.log('I am user2, I have gotten the on call and should now have a video streaming connection', call)
-        navigator.mediaDevices.getUserMedia(mediaConstraints)
-        .then(function(localStream) {
 
+      function handleVideoOfferMsg(msg) {
+        var localStream = null;
+
+        createPeerConnection();
+
+        var desc = new RTCSessionDescription(msg.user1SDP);
+
+        myPeerConnection.setRemoteDescription(desc).then(function () {
+          return navigator.mediaDevices.getUserMedia(mediaConstraints);
+        })
+        .then(function(stream) {
+          localStream = stream;
           document.getElementById("local_video").srcObject = localStream;
 
-          called.answer(localStream); // Answer the call with an A/V stream.
-          called.on('stream', function(remoteStream) {
-            document.getElementById("received_video").srcObject = remoteStream;
-            hideElement('loading');
-            notStreaming = false;
-          });
-          called.on('close', function(){
+          localStream.getTracks().forEach(track => myPeerConnection.addTrack(track, localStream));
+        })
+        .then(function() {
+          return myPeerConnection.createAnswer();
+        })
+        .then(function(answer) {
+          return myPeerConnection.setLocalDescription(answer);
+        })
+        .then(function() {
+          console.log('send-resp-user2')
+          msg.user2SDP = myPeerConnection.localDescription
+          socket.emit('send-resp-user2', msg);
 
-            // getNewPeerId();
-          })
-        }, function(err) {
-          console.log('Failed to get local stream' ,err);
-        });
+        })
+        .catch(handleGetUserMediaError);
+      }
+
+      // Responds to the "video-answer" message sent to the caller
+      // once the callee has decided to accept our request to talk.
+
+      socket.on('video-answer-user2', function(msg){
+        console.log('video-answer-user2 ');
+        handleVideoOfferMsg(msg);
       });
 
+      async function handleVideoAnswerMsg(msg) {
+        console.log("*** Call recipient has accepted our call");
 
-    }
+        var desc = new RTCSessionDescription(msg.user1SDP);
+        await myPeerConnection.setRemoteDescription(desc).catch(reportError);
+      }
 
+      function handleICECandidateEvent(event) {
+        if (event.candidate) {
+          // console.log("*** Outgoing ICE candidate: " + event.candidate.candidate);
+
+          if(users.user1 === myID){
+            //send new ice candidate to user2
+            users.user1Candidate = event.candidate;
+            socket.emit('new-ice-to-user2',users);
+          }else{
+            users.user2Candidate = event.candidate;
+            socket.emit('new-ice-to-user1',users);
+          }
+        }
+      }
+      //user1 gets ice from user2, so users.user2Candidate exists
+      socket.on('handle-ice-to-user1', function(msg){
+        console.log('handle-ice-to-user1 ');
+        handleNewICECandidateMsg(msg.user2Candidate);
+      });
+
+      //user2 gets ice from user1, so users.user1Candidate exists
+      socket.on('handle-ice-to-user2', function(msg){
+        console.log('handle-ice-to-user2 ');
+        handleNewICECandidateMsg(msg.user1Candidate);
+      });
+
+      function handleNewICECandidateMsg(msg) {
+        var candidate = new RTCIceCandidate(msg);
+
+        myPeerConnection.addIceCandidate(candidate)
+          .catch(reportError);
+      }
+
+      function handleTrackEvent(event) {
+        console.log("*** Track event");
+        document.getElementById("received_video").srcObject = event.streams[0];
+        document.getElementById("hangup-button").disabled = false;
+      }
+
+      function closeVideoCall() {
+        var remoteVideo = document.getElementById("received_video");
+        var localVideo = document.getElementById("local_video");
+
+        if (myPeerConnection) {
+          myPeerConnection.ontrack = null;
+          myPeerConnection.onremovetrack = null;
+          myPeerConnection.onremovestream = null;
+          myPeerConnection.onicecandidate = null;
+          myPeerConnection.oniceconnectionstatechange = null;
+          myPeerConnection.onsignalingstatechange = null;
+          myPeerConnection.onicegatheringstatechange = null;
+          myPeerConnection.onnegotiationneeded = null;
+
+          if (remoteVideo.srcObject) {
+            remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+          }
+
+          if (localVideo.srcObject) {
+            localVideo.srcObject.getTracks().forEach(track => track.stop());
+          }
+
+          myPeerConnection.close();
+          myPeerConnection = null;
+        }
+
+        remoteVideo.removeAttribute("src");
+        remoteVideo.removeAttribute("srcObject");
+        localVideo.removeAttribute("src");
+        remoteVideo.removeAttribute("srcObject");
+
+        document.getElementById("hangup-button").disabled = true;
+        targetUsername = null;
+      }
 
     function goWait(){
       console.log('go wait was called')
       socket.emit('waiting');
     }
-    getNewPeerId();
+    // getNewPeerId();
       socket.on('backinwaiting', function(){
         console.log('I am back in waiting ')
       });

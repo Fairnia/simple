@@ -22,8 +22,6 @@ const pairs = [];
 //when a socket makes a connection from the browser
 io.on('connection',function(socket)
 {
-  io.to(socket.id).emit('connected', socket.id)
-  console.log('connected')
 
   socket.on('waiting',()=>
   {
@@ -52,18 +50,26 @@ io.on('connection',function(socket)
         io.to(user1).emit('match', msg);
         console.log('user2 ', user2)
         io.to(user2).emit('match', msg);
-        //user2 is getting an offer from user1
-       io.to(user2).emit('connect-to-partner', msg);
+        //user2 will create the peerconnection
+        io.to(user2).emit('start-pc-user2', msg);
 
       }
 
     }
+    socket.on('send-offer-user1', (msg)=>{
+      io.to(msg.user1).emit('video-offer-user1',msg);
+    });
 
-    socket.on('user2-peerId', (msg)=>{
-      //user2 always sends the answer to user1
-      io.to(msg.user1).emit('make-connection', msg);
-      console.log('user2 peerId', msg.user2PeerId);
-    })
+    socket.on('send-resp-user2', (msg)=>{
+      io.to(msg.user1).emit('video-answer-user2',msg);
+    });
+
+    socket.on('new-ice-to-user1', (msg)=>{
+      io.to(msg.user1).emit('handle-ice-to-user1',msg);
+    });
+    socket.on('new-ice-to-user2', (msg)=>{
+      io.to(msg.user2).emit('handle-ice-to-user2',msg);
+    });
 
 
     socket.on('disconnect', () =>
