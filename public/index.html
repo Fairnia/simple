@@ -1,81 +1,55 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZenGreet</title>
-    <link href="https://fonts.googleapis.com/css?family=Muli&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/style.css">
-  </head>
-  <body>
-    <div class="homepage-container">
-      <header>
-        <div class="logo">
-          <img src="../assets/logo.jpg" alt="ZenGreet logo">
-          <div>ZenGreet</div>
-        </div>
-      </header>
-    </div>
-    <div class="banner">
-      <div id="particles-js"></div>
-      <a class="connect" href="/connect.html">Start Connecting</a>
-    </div>
+<!doctype html>
 
-    <div class="homepage-container">
-      <div class="homepage-text">
-        HAPPY &nbsp; HEALTHY &nbsp; SAFE
-      </div>
-      <div class="homepage-text homepage-definitions">
-        <div class="definition-row">
-          <div class="definition-word">
-            <p>\' zen \:</p>
-          </div>
-          <div class="definition-explained">
-            A state of calm attentiveness in which one's actions are guided by intuition rather than by conscious effort
-          </div>
-        </div>
-        <div class="definition-row">
-          <div class="definition-word">
-            <p>\' greet \:</p>
-          </div>
-          <div class="definition-explained">
-            To address with expression of kind wishes upon meeting
-          </div>
-        </div>
-      </div>
-      <div class="homepage-text">
-        It's easy to feel stressed and disconnected amid the COVID-19 crisis
-      </div>
-      <div class="homepage-text">
-        It's also easy to forget why we need to remain vigilant about staying safe
-      </div>
-      <div class="homepage-text">
-        When you click "Start Connecting" you'll be paired with a random person, together you'll offer kind greetings:
-      </div>
-      <div class="homepage-text">
-        <h4>May you be happy</h4>
-        <h4>May you be healthy</h4>
-        <h4>May you stay safe</h4>
-        You'll then be paired with another person and repeat. You're welcome to keep meeting new people for as long as you like!
-      </div>
-      <div class="homepage-text">
-        By connecting with others and offering them sincere well wishes, we hope you'll feel more connected, hopeful, and motivated to stay safe
-      </div>
-      <div class="homepage-text">
-        <br>
-        <strong>Tip:</strong> if you're having a tough time connecting through video, try using the Chrome browser.
-      </div>
+<!--
+    WebSocket chat client
+
+    WebSocket and WebRTC based multi-user chat sample with two-way video
+    calling, including use of TURN if applicable or necessary.
+
+    This file provides the structure of the chat client's web page, including
+    logging in, text chatting, and making private video calls to other users.
+
+    To read about how this sample works:  http://bit.ly/webrtc-from-chat
+
+    Any copyright is dedicated to the Public Domain.
+    http:   creativecommons.org/publicdomain/zero/1.0/
+-->
+
+<html>
+<head>
+  <title>WebSocket Chat Demo with WebRTC Calling</title>
+  <meta charset="utf-8">
+  <link href="chat.css" rel="stylesheet">
+  <link href="../shared.css" rel="stylesheet">
+  <script type="text/javascript" src="chatclient.js"></script>
+  <script src="adapter.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="infobox">
+      <p>This is a simple chat system implemented using WebSockets. It works by sending packets of JSON back and forth with the server.
+        <a href="https://github.com/mdn/samples-server/tree/master/s/webrtc-from-chat">
+      Check out the source</a> on Github.</p>
+      <p class="mdn-disclaimer">This text and audio/video chat example is offered as-is for demonstration purposes only, and should not be used for any other purpose.
+      </p>
+      <p>Click a username in the user list to ask them to enter a one-on-one video chat with you.</p>
+      <p>Enter a username: <input id="name" type="text" maxlength="12" required autocomplete="username" inputmode="verbatim" placeholder="Username">
+        <input type="button" name="login" value="Log in" onclick="connect()"></p>
     </div>
-    <footer>
-      <p>Copyright 2020 Fairnia Farrokhi</p>
-      <p>Made with &#10084; Powered by coffee and candy</p>
-
-    </footer>
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
-    <script src="../js/particles.js"></script>
-    <script type="text/javascript">
-    particlesJS.load('particles-js', '/particles.json');
-    </script>
-
-  </body>
+    <ul class="userlistbox"></ul>
+    <div class="camerabox">
+      <video id="received_video" autoplay></video>
+      <video id="local_video" autoplay muted></video>
+      <button id="hangup-button" onclick="hangUpCall();" role="button" disabled>
+        Hang Up
+      </button>
+    </div>
+    <div class="empty-container"></div>
+    <div class="chat-controls">
+      Chat:<br/>
+      <input id="text" type="text" name="text" size="100" maxlength="256" placeholder="Say something meaningful..." autocomplete="off" onkeyup="handleKey(event)" disabled>
+      <input type="button" id="send" name="send" value="Send" onclick="handleSendButton()" disabled>
+    </div>
+  </div>
+</body>
 </html>
