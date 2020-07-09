@@ -21,6 +21,7 @@ var WebSocketServer = require('websocket').server;
 var connectionArray = [];
 var nextID = Date.now();
 var appendToMakeUnique = 1;
+var waitingList = [];
 
 // Output logging information to console
 
@@ -61,7 +62,7 @@ function sendToOneUser(target, msgString) {
   var i;
 
   for (i=0; i<connectionArray.length; i++) {
-    if (connectionArray[i].username === target) {
+    if (connectionArray[i].clientID === target) {
       connectionArray[i].sendUTF(msgString);
       break;
     }
@@ -116,6 +117,31 @@ function sendUserListToAll() {
   for (i=0; i<connectionArray.length; i++) {
     connectionArray[i].sendUTF(userListMsgStr);
   }
+}
+
+function matchUsers(){
+  var waitingList =  connectionArray.filter(function(connection) {
+	   return connection.matched == false;
+  });
+
+  if(waitingList.length > 1)
+   {
+     const user1 = waitingList.shift();
+     const user2 = waitingList.pop();
+     user1.matched == true;
+     user2.matched == true;
+
+     var hellomsg = {
+       type: "match",
+       id: user1.clientID,
+       target: user2.clientID
+     }
+     var usermessage = JSON.stringify(hellomsg);
+     // Todo have to find out if user is still connected or not
+     console.log('connection array from matchUsers ', user1)
+
+     user1.sendUTF(usermessage);
+   }
 }
 
 
@@ -175,9 +201,12 @@ wsServer.on('request', function(request) {
 
   log("Connection accepted from " + connection.remoteAddress + ".");
   connectionArray.push(connection);
-
+  connection.matched = false;
   connection.clientID = nextID;
+  console.log("client id from array " + connectionArray[0].clientID);
+
   nextID++;
+  matchUsers();
 
   // Send the new client its token; it send back a "username" message to
   // tell us what username they want to use.
@@ -246,7 +275,7 @@ wsServer.on('request', function(request) {
           // list instead of just updating. It's horribly inefficient
           // but this is a demo. Don't do this in a real app.
           connect.username = msg.name;
-          sendUserListToAll();
+          // sendUserListToAll();
           sendToClients = false;  // We already sent the proper responses
           break;
       }
