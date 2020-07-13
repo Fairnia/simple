@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenGreet</title>
+    <link href="https://fonts.googleapis.com/css?family=Muli&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css" />
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.js"></script>
+    <script type="text/javascript" src="chatclient.js"></script>
+    <script src="adapter.js"></script>
+  </head>
+  <body>
+    <div class="chatpage-container">
+      <div class="zengreet-action">
+        <header>
+          <a href="/thankyou.html" class="stop" onclick="stopMatchingHangUp();">Stop</a>
+        </header>
+        <div class="videos-prompts hide" id="videos">
+          <div class="video-container">
+            <video style="border:1px solid green;" id="received_video" autoplay playsinline></video>
+            <video style="border:1px solid red;" id="local_video" autoplay playsinline muted></video>
+          </div>
+          <div id="greetings"></div>
+          <div id="delayedGreeting"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

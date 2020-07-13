@@ -87,7 +87,7 @@ function setUsername() {
   myUsername = document.getElementById("name").value;
 
   sendToServer({
-    name: myID,
+    name: myUsername,
     date: Date.now(),
     id: clientID,
     type: "username"
@@ -181,6 +181,8 @@ function connect() {
 
       default:
         log_error("Unknown message received:");
+        console.log('unknown message on refresh');
+        console.dir(msg, { depth: null });
         log_error(msg);
     }
 
@@ -307,7 +309,6 @@ async function handleNegotiationNeededEvent() {
 function handleTrackEvent(event) {
   log("*** Track event");
   document.getElementById("received_video").srcObject = event.streams[0];
-  document.getElementById("hangup-button").disabled = false;
 }
 
 // Handles |icecandidate| events by forwarding the specified
@@ -338,7 +339,8 @@ function handleICEConnectionStateChangeEvent(event) {
     case "closed":
     case "failed":
     case "disconnected":
-      closeVideoCall();
+    console.log('VIDEO CALL CLOOOOOSED')
+      hangUpCall();
       break;
   }
 }
@@ -463,6 +465,11 @@ function hangUpCall() {
     target: targetID,
     type: "hang-up"
   });
+}
+
+function stopMatchingHangUp(){
+  hangUpCall();
+  window.location.replace("/thankyou.html");
 }
 
 // Handle a click on an item in the user list by inviting the clicked
@@ -656,3 +663,5 @@ function handleGetUserMediaError(e) {
 function reportError(errMessage) {
   log_error(`Error ${errMessage.name}: ${errMessage.message}`);
 }
+
+connect();
